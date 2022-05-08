@@ -48,8 +48,8 @@ void flow()
 void setup() 
 {
   // put your setup code here, to run once:  
-  //Serial.begin(9600);  
-  //Serial.println("Ready"); 
+  Serial.begin(9600);  
+  Serial.println("Ready"); 
   lcd.begin(16,2);
 
   pinMode(flow_sensor,INPUT);
@@ -61,7 +61,7 @@ void setup()
   looptime=currenttime;
 }
 
-void tds_sensor_cal()
+float tds_sensor_cal()
 {
   for(i=0;i<10;i++)
   {
@@ -84,10 +84,11 @@ avgval+=buffer_tds[i];
 
 float voltage_value = (float)avgval*5.0/1024.0/6;
 float tds=(133.42/voltage_value*voltage_value-255.86*voltage_value*voltage_value+853.39*voltage_value)*0.5;  
-conductivity=tds/0.67;
+Serial.print(tds);
+return tds;
 }
 
-void flow_sensor_cal()
+float flow_sensor_cal()
 {
   currenttime=millis();
 
@@ -111,7 +112,7 @@ void flow_sensor_cal()
       
       //Serial.print('\n');
       flow_freq=0;
-     
+      return vol;
       
      }
   }
@@ -120,8 +121,9 @@ void flow_sensor_cal()
 
 void loop() {
   // put your main code here, to run repeatedly:
-  flow_sensor_cal();
-  tds_sensor_cal();
+  //Serial.print("hello");
+  vol=flow_sensor_cal();
+  tds=tds_sensor_cal();
 
   for(int i=0;i<10;i++)       //Get 10 sample value from the sensor for smooth the value
   { 
@@ -145,36 +147,40 @@ void loop() {
     avgValue+=buf[i];
   float phValue=(float)avgValue*5.0/1024/6; //convert the analog into millivolt
   phValue=3.5*phValue;                      //convert the millivolt into pH value
-  //Serial.print("    pH:");  
-  //Serial.print(phValue);
+  Serial.print("    pH:");  
+  Serial.print(phValue);
   //Serial.println(" ");
 
  
-  
+  conductivity=tds/0.67;
   lcd.clear();
   lcd.blink();
   //lcd.print("rate:");
   lcd.setCursor(0,0);
   lcd.print("vol:");
   lcd.setCursor(0,1);
-  lcd.print(vol,2);
+  lcd.print(vol,1);
   
   //lcd.print("L/M");
   delay(2000);
-  lcd.setCursor(5,0);
-  lcd.print("pH: ");
-  lcd.setCursor(5,1);
-  lcd.print(phValue,2);
+  lcd.setCursor(6,0);
+  lcd.print("pH:");
+  lcd.setCursor(6,1);
+  lcd.print(phValue,1);
   delay(2000);
   //lcd.clear();
   //lcd.blink();
   //lcd.home();
-  lcd.setCursor(10,0);
-  lcd.print("TDS:");
-  lcd.setCursor(10,1);
-  lcd.print(tds,2);
+  
   //lcd.print("PPM");
   delay(2000);
+  lcd.setCursor(11,0);
+  lcd.print("TDS:");
+  lcd.setCursor(11,1);
+  lcd.print(tds,1);
+  delay(2000);
+  
+  
   
   lcd.clear();
   lcd.home();
@@ -194,19 +200,19 @@ void loop() {
 
   if(phValue>=6.5 && phValue<=8.5 && (digitalRead(valve2)==0))
   {
-    digitalWrite(valve1,HIGH); 
+    digitalWrite(valve1,HIGH);
+    digitalWrite(valve2,LOW);
     lcd.clear();
     lcd.home();
     lcd.setCursor(0,0);
     lcd.print("valve1 is open");
+    delay(2000);
   }
+  
   else
   {
-    digitalWrite(valve1,LOW);
-  }
-  if(digitalRead(valve1)==0)
-  {
     digitalWrite(valve2,HIGH); 
+    delay(2000);
     
   }
   if(digitalRead(valve2)==HIGH)
@@ -216,6 +222,7 @@ void loop() {
     lcd.home();
     lcd.setCursor(0,0);
     lcd.print("valve2 is open");
+    
     if(phValue<6.5)
     {
     delay(2000);
@@ -233,12 +240,14 @@ void loop() {
     lcd.home();
     lcd.setCursor(0,0);
     lcd.print("valve4 is open");
+    delay(5000);
     }
     delay(5000);
     if(digitalRead(valve3)==HIGH || digitalRead(valve4)==HIGH)
     {
     delay(2000);
     digitalWrite(motor,HIGH);
+    delay(20000); 
     lcd.clear();
     lcd.home();
     lcd.setCursor(0,0);
